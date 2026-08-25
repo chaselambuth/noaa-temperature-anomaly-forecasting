@@ -1,0 +1,2 @@
+feature_setup,ar_lags,enso_option,enso_lags,recency_half_life_months,month_group_size,use_month_alpha_choice,best_val_model,val_rmse,val_mae,val_bias,best_test_model,test_rmse,test_mae,test_bias,n_tuned_models
+AR_plus_enso,"(1, 2, 3, 6, 12, 18, 24)",enso_0,"(0,)",48,12,False,NHiTS,1.0412912646278276,0.8143247849304721,-0.22308129913096017,PatchTST,1.170460936165501,0.9226440502144397,-0.26844927393096063,7

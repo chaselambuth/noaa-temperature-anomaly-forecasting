@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments and local env files
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# Jupyter
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+# Logs
+*.log
+*.err.log
+
+# Local run artifacts and model/tool output
+runs/
+experiment_notebooks/runs/
+catboost_info/
+experiment_notebooks/catboost_info/
+
+# Large local climate data inputs and caches
+noaa_raw_data/
+*.nc
+nina34.anom.csv
+sst_cache/
+
+# Local/archive working material
+archive/
+Archive/
+**/Archive/
+experiment_notebooks/archive/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Docker/local scratch
+tmp/
+temp/

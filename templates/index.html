@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Climate Anomaly Forecaster</title>
+
+  <!-- Optional: clean styling with zero effort -->
+  <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@2/css/pico.min.css">
+
+  <!-- Chart.js (for plotting in the browser) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #f3f6f7;
+      --surface: #ffffff;
+      --surface-soft: #f8faf9;
+      --ink: #21313a;
+      --muted-ink: #64737c;
+      --line: #dfe8e8;
+      --teal: #167f87;
+      --teal-dark: #0e5961;
+      --mint: #dff3ec;
+      --coral: #e56f4f;
+      --gold: #c5962c;
+      --blue: #4f7ea7;
+      --shadow: 0 18px 50px rgba(23, 49, 58, .10);
+      --shadow-soft: 0 10px 28px rgba(23, 49, 58, .07);
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 16% -8%, rgba(22, 127, 135, .16), transparent 34rem),
+        linear-gradient(180deg, #eef7f5 0%, var(--bg) 22rem, #f7f9f9 100%);
+      color: var(--ink);
+    }
+
+    main.container {
+      max-width: 1280px;
+      padding-top: 1.25rem;
+      padding-bottom: 3rem;
+    }
+
+    h2, h3, h4, h5 { letter-spacing: 0; color: var(--ink); }
+    h2 { margin: 0; font-size: clamp(1.75rem, 2.5vw, 2.45rem); }
+    h4 { font-size: 1.05rem; margin-bottom: .85rem; }
+    h5 { font-size: .9rem; text-transform: uppercase; color: var(--muted-ink); }
+
+    input, select, button {
+      border-radius: 8px !important;
+      letter-spacing: 0;
+    }
+
+    button {
+      border: 0;
+      font-weight: 700;
+      background: var(--teal);
+      box-shadow: var(--shadow-soft);
+    }
+
+    button:hover { background: var(--teal-dark); }
+    button.secondary {
+      color: var(--teal-dark);
+      background: var(--mint);
+      box-shadow: none;
+      border: 1px solid rgba(22, 127, 135, .18);
+    }
+
+    .app-header { margin-bottom: 1rem; }
+
+    .eyebrow {
+      margin: 0 0 .2rem;
+      color: var(--teal-dark);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .muted { color: var(--muted-ink); }
+    .lead { max-width: 760px; margin: .35rem 0 0; font-size: 1rem; }
+    pre { white-space: pre-wrap; word-break: break-word; }
+    canvas { width: 100% !important; height: 390px !important; }
+
+    .guide-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: .75rem;
+      margin-top: 1rem;
+    }
+
+    .guide-item {
+      min-width: 0;
+      padding: .7rem .8rem;
+      border-left: 3px solid var(--teal);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .72);
+      box-shadow: 0 8px 22px rgba(23, 49, 58, .05);
+    }
+
+    .guide-item strong {
+      display: block;
+      margin-bottom: .2rem;
+      color: var(--ink);
+      font-size: .88rem;
+    }
+
+    .guide-item span {
+      display: block;
+      color: var(--muted-ink);
+      font-size: .84rem;
+      line-height: 1.4;
+    }
+
+    .field-help {
+      display: block;
+      margin-top: .35rem;
+      color: var(--muted-ink);
+      font-size: .82rem;
+      line-height: 1.35;
+    }
+
+    .advanced-note,
+    .data-note {
+      margin: .8rem 0 0;
+      color: var(--muted-ink);
+      font-size: .88rem;
+      line-height: 1.4;
+    }
+
+    .data-note {
+      padding: .7rem .8rem;
+      border: 1px solid rgba(22, 127, 135, .18);
+      border-radius: 8px;
+      background: #f2fbf8;
+    }
+
+    .row {
+      display: flex;
+      gap: .6rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+
+    .card {
+      padding: 1.15rem;
+      border: 1px solid rgba(25, 62, 70, .10);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .92);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .run-card {
+      overflow: hidden;
+      padding: 0;
+      border-color: rgba(22, 127, 135, .18);
+      box-shadow: var(--shadow);
+    }
+
+    .run-card-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 1rem;
+      align-items: center;
+      padding: 1.15rem 1.25rem;
+      background:
+        linear-gradient(135deg, rgba(22, 127, 135, .13), rgba(229, 111, 79, .08)),
+        var(--surface);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .run-card-body { padding: 1.2rem 1.25rem 1.35rem; }
+
+    .model-picker { display: grid; gap: .85rem; }
+    .advanced-panel {
+      margin-top: 1rem;
+      padding: .95rem 1rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-soft);
+    }
+    .advanced-panel summary { cursor: pointer; font-weight: 800; color: var(--ink); }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: .55rem;
+    }
+
+    .choice-chip {
+      display: flex;
+      align-items: center;
+      min-height: 3.05rem;
+      min-width: 0;
+      gap: .55rem;
+      padding: .65rem .75rem;
+      border: 1px solid #dfe7ea;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+      overflow: hidden;
+      overflow-wrap: anywhere;
+      word-break: normal;
+    }
+
+    .choice-chip:hover {
+      border-color: rgba(22, 127, 135, .45);
+      box-shadow: 0 8px 20px rgba(22, 127, 135, .08);
+      transform: translateY(-1px);
+    }
+
+    .choice-chip input { margin: 0; }
+    .choice-chip:has(input:checked) {
+      border-color: rgba(22, 127, 135, .58);
+      background: #effaf6;
+      color: var(--teal-dark);
+      font-weight: 800;
+    }
+
+    .choice-note {
+      font-size: .92rem;
+      color: var(--muted-ink);
+      margin: 0 0 .8rem;
+    }
+
+    .group-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: .9rem;
+    }
+
+    .group-panel {
+      min-width: 0;
+      padding: .9rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: linear-gradient(180deg, #fff 0%, #fbfcfc 100%);
+    }
+
+    .group-panel h5 {
+      margin-bottom: .65rem;
+      color: var(--ink);
+      text-transform: none;
+      font-size: .98rem;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.65fr) minmax(300px, .8fr);
+      gap: 1rem;
+      margin-top: 1rem;
+      align-items: start;
+    }
+
+    .metrics-card { min-width: 0; overflow: hidden; }
+    .metrics-shell { display: grid; gap: 1rem; min-width: 0; }
+    .metrics-top { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(280px, .9fr); gap: 1rem; }
+    .metrics-hero {
+      padding: 1rem;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #f7fbfb 0%, #eff8f5 100%);
+      border: 1px solid var(--line);
+    }
+    .metrics-hero h5, .metrics-block h5 { margin-bottom: .5rem; }
+    .hero-model { font-size: 1.35rem; font-weight: 850; margin: 0; color: var(--teal-dark); }
+    .hero-sub { margin: .2rem 0 0; color: var(--muted-ink); }
+    .metrics-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; }
+    .kpi { padding: .8rem; border-radius: 8px; background: #fff; border: 1px solid var(--line); }
+    .kpi-label { font-size: .72rem; color: var(--muted-ink); text-transform: uppercase; letter-spacing: .06em; font-weight: 800; }
+    .kpi-value { font-size: 1.18rem; font-weight: 850; margin-top: .25rem; color: var(--ink); word-break: break-word; }
+    .metrics-block { padding: 1rem; border-radius: 8px; background: #fff; border: 1px solid var(--line); }
+    .metric-table { width: 100%; border-collapse: collapse; font-size: .92rem; table-layout: fixed; }
+    .metric-table td { padding: .45rem 0; border-bottom: 1px solid #edf2f3; }
+    .metric-table td:first-child { width: 44%; color: var(--muted-ink); }
+    .metric-table td:last-child { text-align: right; font-weight: 750; color: var(--ink); overflow-wrap: anywhere; word-break: break-word; }
+    .metric-table tr:last-child td { border-bottom: 0; }
+    .metrics-empty { color: var(--muted-ink); margin: 0; }
+    .metrics-error { padding: .9rem 1rem; border-radius: 8px; background: #fff4f0; border: 1px solid #efc8bd; color: #8c2f23; }
+    .metrics-error strong { display: block; margin-bottom: .35rem; color: #7d281e; }
+    .metrics-error p { margin: 0 0 .65rem; color: #8c2f23; }
+    .error-detail {
+      display: block;
+      padding: .65rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, .7);
+      color: #6f2a22;
+      font-size: .82rem;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .interpretation-bar {
+      display: grid;
+      grid-template-columns: minmax(220px, .95fr) minmax(0, 1.4fr);
+      gap: 1rem;
+      align-items: center;
+      margin-top: 1rem;
+      padding: 1rem 1.15rem;
+      border: 1px solid rgba(25, 62, 70, .10);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .92);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .interpretation-copy h4 {
+      margin: 0 0 .25rem;
+    }
+
+    .interpretation-copy p {
+      margin: 0;
+      color: var(--muted-ink);
+      font-size: .95rem;
+    }
+
+    .anomaly-scale {
+      display: grid;
+      gap: .45rem;
+      min-width: 0;
+    }
+
+    .scale-track {
+      position: relative;
+      height: .8rem;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--blue) 0%, #f4f7f6 50%, var(--coral) 100%);
+      border: 1px solid rgba(25, 62, 70, .10);
+      overflow: hidden;
+    }
+
+    .scale-zero {
+      position: absolute;
+      left: 50%;
+      top: -.25rem;
+      width: 2px;
+      height: 1.3rem;
+      background: var(--ink);
+      opacity: .75;
+    }
+
+    .scale-labels {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: .5rem;
+      font-size: .82rem;
+      color: var(--muted-ink);
+      font-weight: 750;
+    }
+
+    .scale-labels span:nth-child(2) { text-align: center; }
+    .scale-labels span:nth-child(3) { text-align: right; color: #9e3f2d; }
+    .scale-labels span:first-child { color: #3d6f93; }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: .65rem;
+    }
+
+    .profile-item {
+      padding: .8rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .profile-label {
+      font-size: .72rem;
+      color: var(--muted-ink);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-weight: 800;
+    }
+
+    .profile-value {
+      margin-top: .2rem;
+      font-weight: 850;
+      color: var(--ink);
+    }
+
+    .chart-card { min-height: 470px; }
+
+    @media (max-width: 1000px) {
+      .app-header,
+      .interpretation-bar,
+      .run-card-head,
+      .grid2,
+      .grid3,
+      .metrics-top,
+      .results-grid,
+      .group-grid,
+      .guide-strip {
+        grid-template-columns: 1fr;
+      }
+      .checkbox-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metrics-kpis { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      main.container { padding-inline: .75rem; }
+      .checkbox-grid,
+      .profile-grid { grid-template-columns: 1fr; }
+      .run-card-head,
+      .run-card-body { padding-inline: 1rem; }
+      canvas { height: 320px !important; }
+    }
+  </style>
+</head>
+
+<body>
+<main class="container">
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">NOAA anomaly forecasting</p>
+      <h2>Climate Anomaly Forecaster</h2>
+      <p class="muted lead">Run the final NOAA monthly temperature-anomaly setup selected from the notebook experiments.</p>
+      <div class="guide-strip" aria-label="Forecasting workflow overview">
+        <div class="guide-item">
+          <strong>1. Estimate normal</strong>
+          <span>An 18-year rolling climatology estimates the usual temperature for the target month.</span>
+        </div>
+        <div class="guide-item">
+          <strong>2. Model the residual</strong>
+          <span>The selected LSTM predicts the leftover anomaly after the monthly baseline is removed.</span>
+        </div>
+        <div class="guide-item">
+          <strong>3. Use recent signals</strong>
+          <span>The default run uses sparse temperature lags, 48-month recency weighting, and current ENSO.</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="card run-card">
+    <div class="run-card-head">
+      <div>
+        <h4>Forecast Setup</h4>
+        <p class="muted" style="margin: 0;">Defaults match the selected Notebook 06 single-model residual recipe; advanced controls are here for review and reruns.</p>
+      </div>
+      <button id="applyRecommendationBtn" type="button" class="secondary">Reset to Recommended Setup</button>
+    </div>
+
+    <div class="run-card-body">
+    <div class="grid2">
+      <label>
+        Forecast horizon (months ahead)
+        <input id="horizon" type="number" min="1" max="24" value="{{ experiment_config.horizon }}" />
+        <small class="field-help">1 means one month ahead; larger values ask the model to forecast farther into the future.</small>
+      </label>
+
+      <label>
+        Run mode
+        <select id="mode">
+          <option value="single">Single model</option>
+          <option value="ensemble">Ensemble</option>
+          <option value="seasonal_ensemble">Seasonal ensemble</option>
+        </select>
+        <small class="field-help">The project recommendation is Single model; the ensemble modes are available for comparison only.</small>
+      </label>
+    </div>
+
+    <div class="model-picker" style="margin-top: 1rem;">
+      <div id="singleModelSection">
+        <label>
+          Default model
+          <select id="model_name">
+            <option value="lstm" selected>LSTM</option>
+            <option value="gru">GRU</option>
+            <option value="cnn1d">CNN1D</option>
+            <option value="mlp">MLP</option>
+            <option value="elasticnet">ElasticNet</option>
+            <option value="lasso">Lasso</option>
+            <option value="ridge">Ridge</option>
+            <option value="huber">Huber</option>
+            <option value="xgboost">XGBoost</option>
+            <option value="lightgbm">LightGBM</option>
+            <option value="catboost">CatBoost</option>
+            <option value="randomforest">RandomForest</option>
+          </select>
+          <small class="field-help">Recommended final choice: residual LSTM, selected for low validation and test error.</small>
+        </label>
+      </div>
+
+      <div id="ensembleSection" style="display: none;">
+        <p class="choice-note">Choose up to 5 models for the ensemble.</p>
+        <div class="checkbox-grid">
+          <label class="choice-chip"><input class="ensemble-model" type="checkbox" value="lstm" /> LSTM</label>
+          <label class="choice-chip"><input class="ensemble-model" type="checkbox" value="gru" /> GRU</label>
+          <label class="choice-chip"><input class="ensemble-model" type="checkbox" value="cnn1d" /> CNN1D</label>
+          <label class="choice-chip"><input class="ensemble-model" type="checkbox" value="mlp" /> MLP</label>
+          <label class="choice-chip"><input class="ensemble-model" type="checkbox" value="elasticnet" /> ElasticNet</label>
+          <label class="choice-chip"><input class="ensemble-model" type="checkbox" value="lasso" /> Lasso</label>
+          <label class="choice-chip"><input class="ensemble-model" type="checkbox" value="ridge" /> Ridge</label>
+          <label class="choice-chip"><input class="ensemble-model" type="checkbox" value="huber" /> Huber</label>
+          <label class="choice-chip"><input class="ensemble-model" type="checkbox" value="xgboost" /> XGBoost</label>
+          <label class="choice-chip"><input class="ensemble-model" type="checkbox" value="lightgbm" /> LightGBM</label>
+          <label class="choice-chip"><input class="ensemble-model" type="checkbox" value="catboost" /> CatBoost</label>
+          <label class="choice-chip"><input class="ensemble-model" type="checkbox" value="randomforest" /> RandomForest</label>
+        </div>
+      </div>
+
+      <div id="seasonalEnsembleSection" style="display: none;">
+        <p class="choice-note">The recommended setup starts with one selected model for each month group.</p>
+
+        <div class="group-grid">
+        <div class="group-panel">
+          <h5>January-March</h5>
+          <div class="checkbox-grid">
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JFM" type="checkbox" value="lstm" /> LSTM</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JFM" type="checkbox" value="gru" /> GRU</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JFM" type="checkbox" value="cnn1d" /> CNN1D</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JFM" type="checkbox" value="mlp" /> MLP</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JFM" type="checkbox" value="elasticnet" /> ElasticNet</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JFM" type="checkbox" value="lasso" checked /> Lasso</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JFM" type="checkbox" value="ridge" /> Ridge</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JFM" type="checkbox" value="huber" /> Huber</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JFM" type="checkbox" value="xgboost" /> XGBoost</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JFM" type="checkbox" value="lightgbm" /> LightGBM</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JFM" type="checkbox" value="catboost" /> CatBoost</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JFM" type="checkbox" value="randomforest" /> RandomForest</label>
+          </div>
+        </div>
+
+        <div class="group-panel">
+          <h5>April-June</h5>
+          <div class="checkbox-grid">
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="AMJ" type="checkbox" value="lstm" checked /> LSTM</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="AMJ" type="checkbox" value="gru" /> GRU</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="AMJ" type="checkbox" value="cnn1d" /> CNN1D</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="AMJ" type="checkbox" value="mlp" /> MLP</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="AMJ" type="checkbox" value="elasticnet" /> ElasticNet</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="AMJ" type="checkbox" value="lasso" /> Lasso</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="AMJ" type="checkbox" value="ridge" /> Ridge</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="AMJ" type="checkbox" value="huber" /> Huber</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="AMJ" type="checkbox" value="xgboost" /> XGBoost</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="AMJ" type="checkbox" value="lightgbm" /> LightGBM</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="AMJ" type="checkbox" value="catboost" /> CatBoost</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="AMJ" type="checkbox" value="randomforest" /> RandomForest</label>
+          </div>
+        </div>
+
+        <div class="group-panel">
+          <h5>July-September</h5>
+          <div class="checkbox-grid">
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JAS" type="checkbox" value="lstm" /> LSTM</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JAS" type="checkbox" value="gru" /> GRU</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JAS" type="checkbox" value="cnn1d" /> CNN1D</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JAS" type="checkbox" value="mlp" /> MLP</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JAS" type="checkbox" value="elasticnet" /> ElasticNet</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JAS" type="checkbox" value="lasso" /> Lasso</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JAS" type="checkbox" value="ridge" /> Ridge</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JAS" type="checkbox" value="huber" /> Huber</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JAS" type="checkbox" value="xgboost" /> XGBoost</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JAS" type="checkbox" value="lightgbm" /> LightGBM</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JAS" type="checkbox" value="catboost" checked /> CatBoost</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="JAS" type="checkbox" value="randomforest" /> RandomForest</label>
+          </div>
+        </div>
+
+        <div class="group-panel">
+          <h5>October-December</h5>
+          <div class="checkbox-grid">
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="OND" type="checkbox" value="lstm" /> LSTM</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="OND" type="checkbox" value="gru" /> GRU</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="OND" type="checkbox" value="cnn1d" /> CNN1D</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="OND" type="checkbox" value="mlp" /> MLP</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="OND" type="checkbox" value="elasticnet" /> ElasticNet</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="OND" type="checkbox" value="lasso" /> Lasso</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="OND" type="checkbox" value="ridge" /> Ridge</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="OND" type="checkbox" value="huber" checked /> Huber</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="OND" type="checkbox" value="xgboost" /> XGBoost</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="OND" type="checkbox" value="lightgbm" /> LightGBM</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="OND" type="checkbox" value="catboost" /> CatBoost</label>
+            <label class="choice-chip"><input class="seasonal-ensemble-model" data-group="OND" type="checkbox" value="randomforest" /> RandomForest</label>
+          </div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <hr />
+
+    <details class="advanced-panel">
+      <summary>Advanced Options: data, lags, and preprocessing</summary>
+      <p class="advanced-note">These settings reproduce the final notebook pipeline. Most users should only change the data paths or forecast horizon.</p>
+
+      <div class="grid3" style="margin-top: 1rem;">
+        <label>
+          K (land PCA components)
+          <input id="K" type="number" min="1" max="200" value="10" />
+          <small class="field-help">Number of land temperature-pattern components used as predictors.</small>
+        </label>
+
+        <label>
+          PC lags (comma-separated)
+          <input id="pc_lags" type="text" value="1,2,3,6,12" />
+          <small class="field-help">Lagged land pattern features. Values are months before the forecast target.</small>
+        </label>
+
+        <label>
+          Y lags (comma-separated)
+          <input id="y_lags" type="text" value="1,2,3,6,12" />
+          <small class="field-help">Lagged target-anomaly values used by direct-model comparison runs.</small>
+        </label>
+      </div>
+
+      <div class="grid3" style="margin-top: 1rem;">
+        <label>
+          SST PC lags (comma-separated)
+          <input id="sst_pc_lags" type="text" value="0,1,3,6,12" />
+          <small class="field-help">Sea-surface temperature lags; 0 means current-month SST when SST is enabled.</small>
+        </label>
+
+        <label>
+          AR lags (comma-separated)
+          <input id="ar_lags" type="text" value="{{ experiment_config.ar_lags | join(',') }}" />
+          <small class="field-help">Selected sparse autoregressive lag set from the notebook tuning pass.</small>
+        </label>
+
+        <label>
+          Half-life months
+          <input id="half_life_months" type="number" min="1" max="240" value="{{ experiment_config.half_life_months }}" />
+          <small class="field-help">Recency weighting half-life. The final pipeline uses 48 months.</small>
+        </label>
+      </div>
+
+      <div class="grid3" style="margin-top: 1rem;">
+        <label>
+          Climatology window years
+          <input id="climatology_years" type="number" min="1" max="50" value="{{ experiment_config.climatology_years }}" />
+          <small class="field-help">Years used to estimate normal conditions for each calendar month.</small>
+        </label>
+
+        <label>
+          <input id="use_climatology_residual" type="checkbox" checked />
+          Use climatology residual target
+          <small class="field-help">Subtracts the monthly baseline first, then forecasts the remaining anomaly.</small>
+        </label>
+      </div>
+
+      <p class="data-note">For local testing, place raw NOAA files in <code>noaa_raw_data/</code>. That folder is ignored for GitHub, so reviewers can supply their own copies without changing code.</p>
+
+      <div class="grid3" style="margin-top: 1rem;">
+        <label>
+          TAVG file path
+          <input id="tavg_file" type="text" value="{{ experiment_config.tavg_file }}" />
+          <small class="field-help">Monthly NOAA land temperature NetCDF file, usually <code>noaa_raw_data/nclimgrid_tavg.nc</code>.</small>
+        </label>
+
+        <label>
+          SST directory
+          <input id="sst_dir" type="text" value="{{ experiment_config.sst_dir }}" />
+          <small class="field-help">Directory for cached SST files. Leave as default unless SST features are enabled.</small>
+        </label>
+
+        <label>
+          Runs directory
+          <input id="runs_dir" type="text" value="{{ experiment_config.runs_dir }}" />
+          <small class="field-help">Where app run artifacts are written locally.</small>
+        </label>
+      </div>
+
+      <div class="grid3" style="margin-top: 1rem;">
+        <label>
+          <input id="use_sst" type="checkbox" />
+          Use SST features
+          <small class="field-help">Adds sea-surface temperature predictors for comparison runs.</small>
+        </label>
+
+        <label>
+          <input id="use_teleconnections" type="checkbox" />
+          Use teleconnections
+          <small class="field-help">Adds climate-index predictors beyond the selected ENSO signal.</small>
+        </label>
+
+        <label>
+          <input id="use_qmap" type="checkbox" />
+          Use qmap calibration
+          <small class="field-help">Applies quantile mapping calibration after model prediction.</small>
+        </label>
+      </div>
+
+      <div class="grid3" style="margin-top: 1rem;">
+        <label>
+          <input id="use_enso" type="checkbox" checked />
+          Use ENSO / Nino 3.4
+          <small class="field-help">Keeps the selected current ENSO signal in the residual model.</small>
+        </label>
+
+        <label>
+          <input id="residual_deseasonalize" type="checkbox" />
+          Residual deseasonalize
+          <small class="field-help">Additional deseasonalization option for experimental reruns.</small>
+        </label>
+      </div>
+
+      <div id="ensoOptions" class="grid2" style="margin-top: 1rem;">
+        <label>
+          ENSO CSV path
+          <input id="enso_csv" type="text" value="{{ experiment_config.enso_csv }}" />
+          <small class="field-help">Nino 3.4 anomaly CSV, usually <code>noaa_raw_data/nina34.anom.csv</code>.</small>
+        </label>
+
+        <label>
+          ENSO lags (comma-separated)
+          <input id="enso_lags" type="text" value="{{ experiment_config.enso_lags | join(',') }}" />
+          <small class="field-help">Use 0 for current ENSO, matching the final selected setup.</small>
+        </label>
+      </div>
+    </details>
+
+    <div class="row" style="margin-top: 1rem;">
+      <button id="runBtn">Run</button>
+      <span id="status" class="muted"></span>
+    </div>
+    </div>
+  </section>
+
+  <section class="interpretation-bar" aria-label="How to interpret temperature anomaly results">
+    <div class="interpretation-copy">
+      <h4>How To Read Results</h4>
+      <p>The forecast number is a temperature anomaly in degrees Celsius compared with the normal for that month. The plot compares observed anomalies against predictions over the held-out test period.</p>
+    </div>
+    <div class="anomaly-scale">
+      <div class="scale-track">
+        <span class="scale-zero"></span>
+      </div>
+      <div class="scale-labels">
+        <span>Negative = colder than normal</span>
+        <span>0 = near normal</span>
+        <span>Positive = hotter than normal</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="results-grid">
+    <div class="card metrics-card">
+      <h4>Metrics</h4>
+      <div id="metrics" class="metrics-shell"></div>
+    </div>
+
+    <div class="card">
+      <h4>Run Profile</h4>
+      <div class="profile-grid">
+        <div class="profile-item">
+          <div class="profile-label">Target</div>
+          <div class="profile-value">Residual anomaly</div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-label">Climatology</div>
+          <div class="profile-value">{{ experiment_config.climatology_years }} years</div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-label">Signal</div>
+          <div class="profile-value">Current ENSO</div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-label">Lag Set</div>
+          <div class="profile-value">1, 2, 3, 6, 12, 18, 24</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card chart-card" style="margin-top: 1rem;">
+    <h4>Forecast Plot</h4>
+    <canvas id="chart"></canvas>
+  </section>
+</main>
+
+<!-- Flask will serve /static/main.js from the static/ folder -->
+<script>
+  window.EXPERIMENT_CONFIG = {{ experiment_config | tojson }};
+  window.EXPERIMENT_BEST_BY_HORIZON = {{ experiment_best_by_horizon | tojson }};
+</script>
+<script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>

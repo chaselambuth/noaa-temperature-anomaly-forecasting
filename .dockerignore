@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+.venv/
+venv/
+runs/
+noaa_raw_data/
+.git/
+.gitignore
+*.ipynb
+*.npz
+*.csv
+*.nc

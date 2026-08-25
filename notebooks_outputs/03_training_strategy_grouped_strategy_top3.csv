@@ -1,0 +1,7 @@
+Group,Members,TopK,Leader,Leader_RMSE
+G01_02,"Ridge, Huber, NHiTS",3,Ridge,1.334963333055163
+G03_04,"Ridge, NHiTS, LSTM",3,Ridge,1.2845918237662448
+G05_06,"iTransformer, PatchTST, NHiTS",3,iTransformer,0.6686741029820826
+G07_08,"PatchTST, NHiTS, iTransformer",3,PatchTST,0.5621864511268013
+G09_10,"NHiTS, Huber, iTransformer",3,NHiTS,0.8247868598398055
+G11_12,"Huber, NHiTS, Ridge",3,Huber,1.218576041772923

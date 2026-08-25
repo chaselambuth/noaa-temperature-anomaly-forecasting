@@ -1,0 +1,6 @@
+H,model,best_selected_model,test_rmse,test_mae,test_bias,enso_option,enso_lags,ar_lags,recency_half_life_months
+1,iTransformer,Residual_iTransformer,1.109182647609326,0.8256444547129308,0.0662519115932852,enso_0,"(0,)","(1, 2, 3, 6, 12, 18, 24)",48
+2,iTransformer,Residual_iTransformer,1.1049706757702056,0.8456899956304426,0.08769135335732618,enso_0,"(0,)","(1, 2, 3, 6, 12, 18, 24)",48
+3,PatchTST,Residual_PatchTST,1.1005043876584186,0.8241265017974969,0.10454517206645497,enso_0,"(0,)","(1, 2, 3, 6, 12, 18, 24)",48
+6,Huber,Residual_Huber,1.057966727320502,0.7880782398414925,-0.055081834536085054,enso_0,"(0,)","(1, 2, 3, 6, 12, 18, 24)",48
+12,Huber,Residual_Huber,1.0559887897446685,0.7899887882170671,-0.1009504068147777,enso_0,"(0,)","(1, 2, 3, 6, 12, 18, 24)",48
